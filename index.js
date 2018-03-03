@@ -5,21 +5,19 @@ var chalk = require('chalk');
 var prompt = require('prompt');
 
 var eztv = require('./provider/eztv');
-var rarbg = require('./provider/rarbg');
 
 
 var Table = require('cli-table');
 const Ora = require('ora');
 
 var availableProviders = [
-  eztv,
-  rarbg
+  eztv
 ]
 
 program
   .option('-q, --query <query>', 'query', '')
   .option('-c, --category <category>', 'category', '')
-  .option('-p, --provider <provider>', 'provider (available: ' + availableProviders.map(x => x.name) + ')', /^(eztv|rarbg)$/i, 'eztv')
+  .option('-p, --provider <provider>', 'provider (available: ' + availableProviders.map(x => x.name) + ')', /^(eztv)$/i, 'eztv')
   .parse(process.argv);
 
 provider = availableProviders.find(function(it) { return it.name == program.provider });

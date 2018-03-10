@@ -1,134 +1,61 @@
 #!/usr/bin/env node
 
-var program = require('commander');
-var chalk = require('chalk');
-var prompt = require('prompt');
+var program = require("commander");
+var chalk = require("chalk");
 
-var eztv = require('./provider/eztv');
+var eztv = require("./provider/eztv");
 
-var Table = require('cli-table');
-var Ora = require('ora');
+var Ora = require("ora");
+var UI = require("./ui");
 
-var availableProviders = [
-  eztv
-]
+var availableProviders = [eztv];
 
 program
-  .option('-q, --query <query>', 'query', '')
-  .option('-c, --category <category>', 'category', '')
-  .option('-p, --provider <provider>', 'provider (available: ' + availableProviders.map(x => x.name) + ')', /^(eztv)$/i, 'eztv')
-  .parse(process.argv)
+  .option("-q, --query <query>", "query", "")
+  .option("-c, --category <category>", "category", "")
+  .option(
+    "-p, --provider <provider>",
+    "provider (available: " + availableProviders.map(x => x.name) + ")",
+    /^(eztv)$/i,
+    "eztv"
+  )
+  .parse(process.argv);
 
-provider = availableProviders.find(function(it) { return it.name == program.provider });
-
-var loadingText = chalk.blue('Searching for ') + chalk.red('\"' + program.query + '\"') + chalk.blue(' on ') + chalk.red(provider.name);
+provider = availableProviders.find(it => {
+  return it.name == program.provider;
+});
 
 const spinner = new Ora({
-  text: loadingText
+  text: chalk`{blue Searching for} {red "${program.query}"} {blue on} {red ${
+    provider.name
+  }}`
 });
-spinner.start()
+spinner.start();
 
-provider
-  .search(program.query, '', 100)
-  .then(
-        function (data) {
+provider.search(program.query, "", 100).then(
+  data => {
+    spinner.succeed();
+    UI.present(data, 20);
+    UI.selectTorrents(data, selected => {
+      selected.forEach(t => openTorrent(t));
+    });
+  },
+  function(err) {
+    console.log(err);
+    spinner.fail();
+  }
+);
 
-            spinner.succeed()
-            console.log(chalk.green(data.length) + ' results:');
+const spawnSync = require("child_process").spawnSync;
 
-            present(data.slice(0, 20));
+function openTorrent(torrent) {
+  const result = spawnSync("open", [torrent.torrent_link], {
+    timeout: 60000
+  });
 
-            var stdin = process.openStdin();
-
-            prompt.message = 'select torrent(s) to download'
-
-            prompt.start();
-
-            prompt.get([{
-                name: 'selection',
-                type: 'string',
-              }], function (err, result) {
-
-              console.log(result.selection)
-
-              var selectedTorrents = result.selection.split(",")
-
-              var selected = data
-                .filter(torrent => { selectedTorrents.includes(String(torrent.torrent_num)) })
-
-              var selectedNames = selected
-                .map(torrent => { '- ' + chalk.blue(torrent.title) })
-                .join('\n')
-
-                console.log('selected:');
-                console.log(selectedNames);
-
-                selected.forEach( torrent => {
-                  openTorrent(torrent)
-                })
-
-            });
-
-        },
-        function (err) {
-            console.log(err);
-            spinner.fail()
-        }
-  );
-
-  function format(val) {
-    if (val) {
-      return val
-    } else {
-      return '-'
-    }
+  if (result.error || result.status) {
+    throw new Error(result.error || result.stderr.toString());
   }
 
-  
-function present(data) {
-
-    if (data.length == 0) { return }
-
-    var table = new Table({
-        head: [
-          chalk.bold('#'),
-          chalk.bold.blue('Name'),
-          chalk.green('\u25B2'),
-          chalk.red('\u25BC')
-        ]
-      , colWidths: [6, 50, 8, 8 ]
-    })
-
-    data.forEach(function(torrent) {
-      table.push([
-        torrent.torrent_num,
-        chalk.blue(torrent.title.substring(0, 48)),
-        chalk.green(format(torrent.seeds)),
-        chalk.red(format(torrent.leechs)),
-      ])
-    })
-
-    console.log(table.toString());
-
-    console.log('')
-
+  return result.stdout.toString();
 }
-
-
-  const spawnSync = require("child_process").spawnSync;
-
-  function openTorrent(torrent) {
-    const result = spawnSync(
-      "open",
-      [torrent.torrent_link],
-      {
-        timeout: 60000
-      }
-    );
-
-    if (result.error || result.status) {
-      throw new Error(result.error || result.stderr.toString());
-    }
-
-    return result.stdout.toString();
-  }

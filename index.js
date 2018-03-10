@@ -6,9 +6,8 @@ var prompt = require('prompt');
 
 var eztv = require('./provider/eztv');
 
-
 var Table = require('cli-table');
-const Ora = require('ora');
+var Ora = require('ora');
 
 var availableProviders = [
   eztv
@@ -18,14 +17,14 @@ program
   .option('-q, --query <query>', 'query', '')
   .option('-c, --category <category>', 'category', '')
   .option('-p, --provider <provider>', 'provider (available: ' + availableProviders.map(x => x.name) + ')', /^(eztv)$/i, 'eztv')
-  .parse(process.argv);
+  .parse(process.argv)
 
 provider = availableProviders.find(function(it) { return it.name == program.provider });
 
 var loadingText = chalk.blue('Searching for ') + chalk.red('\"' + program.query + '\"') + chalk.blue(' on ') + chalk.red(provider.name);
 
 const spinner = new Ora({
-	text: loadingText
+  text: loadingText
 });
 spinner.start()
 
@@ -37,30 +36,7 @@ provider
             spinner.succeed()
             console.log(chalk.green(data.length) + ' results:');
 
-            if (data.length == 0) { return }
-
-            var table = new Table({
-                head: [
-                  chalk.bold('#'),
-                  chalk.bold.blue('Name'),
-                  chalk.green('\u25B2'),
-                  chalk.red('\u25BC')
-                ]
-              , colWidths: [4, 50, 5, 5 ]
-            })
-
-            data.forEach(function(torrent) {
-              table.push([
-                torrent.torrent_num,
-                chalk.blue(torrent.title.substring(0, 48)),
-                chalk.green(format(torrent.seeds)),
-                chalk.red(format(torrent.leechs)),
-              ])
-            })
-
-            console.log(table.toString());
-
-            console.log('')
+            present(data.slice(0, 20));
 
             var stdin = process.openStdin();
 
@@ -73,17 +49,15 @@ provider
                 type: 'string',
               }], function (err, result) {
 
+              console.log(result.selection)
+
               var selectedTorrents = result.selection.split(",")
 
               var selected = data
-                .filter(torrent => {
-                  return selectedTorrents.includes(String(torrent.torrent_num))
-                })
+                .filter(torrent => { selectedTorrents.includes(String(torrent.torrent_num)) })
 
               var selectedNames = selected
-                .map(torrent => {
-                   return '- ' + chalk.blue(torrent.title)
-                })
+                .map(torrent => { '- ' + chalk.blue(torrent.title) })
                 .join('\n')
 
                 console.log('selected:');
@@ -103,12 +77,43 @@ provider
   );
 
   function format(val) {
-  	if (val) {
-    	return val
+    if (val) {
+      return val
     } else {
-    	return '-'
+      return '-'
     }
   }
+
+  
+function present(data) {
+
+    if (data.length == 0) { return }
+
+    var table = new Table({
+        head: [
+          chalk.bold('#'),
+          chalk.bold.blue('Name'),
+          chalk.green('\u25B2'),
+          chalk.red('\u25BC')
+        ]
+      , colWidths: [6, 50, 8, 8 ]
+    })
+
+    data.forEach(function(torrent) {
+      table.push([
+        torrent.torrent_num,
+        chalk.blue(torrent.title.substring(0, 48)),
+        chalk.green(format(torrent.seeds)),
+        chalk.red(format(torrent.leechs)),
+      ])
+    })
+
+    console.log(table.toString());
+
+    console.log('')
+
+}
+
 
   const spawnSync = require("child_process").spawnSync;
 

@@ -33,7 +33,7 @@ module.exports = {
             date_added;
           $ = cheerio.load(body);
           if ($("tr.forum_header_border").length > 0) {
-            $("tr.forum_header_border").each(function(index, torrent) {
+            $("tr.forum_header_border").each((index, torrent) => {
               eztv_link = $(torrent)
                 .find("a.magnet")
                 .attr("href");

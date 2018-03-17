@@ -13,6 +13,7 @@ var availableProviders = [eztv];
 program
   .option("-q, --query <query>", "query", "")
   .option("-c, --category <category>", "category", "")
+  .option("-l, --limit <limit>", "limit", 20)
   .option(
     "-p, --provider <provider>",
     "provider (available: " + availableProviders.map(x => x.name) + ")",
@@ -35,7 +36,7 @@ spinner.start();
 provider.search(program.query, "", 100).then(
   data => {
     spinner.succeed();
-    UI.present(data, 20);
+    UI.present(data, program.limit);
     UI.selectTorrents(data, selected => {
       selected.forEach(t => openTorrent(t));
     });

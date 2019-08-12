@@ -2,6 +2,14 @@ var chalk = require("chalk");
 var prompt = require("prompt");
 var List = require("term-list");
 
+var columnWidths = [
+  3,
+  50,
+  8,
+  8,
+  12,
+];
+
 module.exports = {
   present: function(data, selected) {
     if (data.length == 0) {
@@ -13,28 +21,26 @@ module.exports = {
     console.log(
       formatRow(
         [
-          chalk.bold("#"),
-          chalk.bold.blue("Name"),
-          chalk.green("\u25B2"),
-          chalk.red("\u25BC"),
-          chalk.blue("Added")
-        ],
-        []
+          chalk.bold(r_pad("#", columnWidths[0])),
+          chalk.bold.blue(r_pad("Name", columnWidths[1])),
+          chalk.green(r_pad("\u25B2", columnWidths[2])),
+          chalk.red(r_pad("\u25BC", columnWidths[3])),
+          chalk.bold(r_pad("Added", columnWidths[4])),
+        ]
       )
     );
 
     var list = new List({ marker: "\033[36m› \033[0m", markerLength: 2 });
 
-    data.forEach(torrent => {
+    data.slice(0, 40).forEach(torrent => {
       var text = formatRow(
         [
-          torrent.torrent_num,
-          chalk.blue(torrent.title.substring(0, 48)),
-          chalk.green(format(torrent.seeds)),
-          chalk.red(format(torrent.leechs)),
-          chalk.bold(format(torrent.date_added))
-        ],
-        []
+          l_pad(torrent.torrent_num, columnWidths[0]),
+          chalk.blue(r_pad(torrent.title, columnWidths[1])),
+          chalk.green(l_pad(format(torrent.seeds), columnWidths[2])),
+          chalk.red(l_pad(format(torrent.leechs), columnWidths[3])),
+          chalk.bold(r_pad(format(torrent.date_added), columnWidths[4]))
+        ]
       );
       list.add(torrent, text);
     });
@@ -44,6 +50,9 @@ module.exports = {
       switch (key.name) {
         case "return":
           selected(item);
+          break;
+        case "escape":
+          list.stop();
           break;
         case "backspace":
           list.remove(list.selected);
@@ -65,9 +74,19 @@ function format(val) {
   }
 }
 
-function formatRow(data, colWidths) {
-  var result = "";
-  console.log('dsads')
-
+function formatRow(data) {
   return data.join(" | ");
 }
+
+function r_pad(str, width) {
+  var paddingValue = Array(width).join(" ")
+
+  return String(str + paddingValue).substring(0, paddingValue.length);
+};
+
+function l_pad(str, width) {
+  var paddingValue = Array(width).join(" ")
+
+  return String(paddingValue + str).slice(-paddingValue.length);
+};
+
